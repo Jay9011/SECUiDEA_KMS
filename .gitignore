@@ -7,6 +7,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Git 제외 항목
+SECUiDEA_KMS/[Cc]onfig/
+[Aa]ppsettings.json
+[Aa]ppsettings.Development.json
+[Aa]ppsettings.*.json
+
 # User-specific files
 *.rsuser
 *.suo

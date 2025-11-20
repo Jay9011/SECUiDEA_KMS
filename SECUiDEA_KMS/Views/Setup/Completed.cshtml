@@ -1,0 +1,179 @@
+@model SECUiDEA_KMS.Models.SetupCompletedViewModel
+@{
+    ViewData["Title"] = "초기 설치 완료";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <!-- 완료 메시지 -->
+            <div class="card shadow border-success mb-4">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+                    </div>
+                    <h2 class="card-title text-success mb-3">초기 설치 완료!</h2>
+                    <p class="card-text text-muted mb-0">
+                        SECUiDEA KMS의 모든 초기 설정이 성공적으로 완료되었습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 설정 요약 -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> 설정 요약
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 마스터 키 설정 -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-shield-lock"></i> 마스터 키 설정
+                        </h6>
+                        <div class="ms-4">
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">상태:</div>
+                                <div class="col-8">
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> 설정 완료
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">마스터 키 파일:</div>
+                                <div class="col-8">
+                                    <code>@Model.MasterKeyFilePath</code>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 text-muted">백업 키 파일:</div>
+                                <div class="col-8">
+                                    <code>@System.IO.Path.GetFileName(Model.BackupKeyFilePath)</code>
+                                    @if (Model.BackupKeyExists)
+                                    {
+                                        <span class="badge bg-success ms-2">
+                                            <i class="bi bi-check"></i> 생성됨
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 데이터베이스 설정 -->
+                    <div class="mb-3">
+                        <h6 class="text-primary">
+                            <i class="bi bi-database"></i> 데이터베이스 설정
+                        </h6>
+                        <div class="ms-4">
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">상태:</div>
+                                <div class="col-8">
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> 설정 완료
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">서버:</div>
+                                <div class="col-8">
+                                    <code>@Model.DatabaseServer:@Model.DatabasePort</code>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">데이터베이스:</div>
+                                <div class="col-8">
+                                    <code>@Model.DatabaseName</code>
+                                </div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">인증 방식:</div>
+                                <div class="col-8">
+                                    @if (Model.IntegratedSecurity)
+                                    {
+                                        <span class="badge bg-info">Windows 통합 인증</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">SQL Server 인증</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 text-muted">설정 파일:</div>
+                                <div class="col-8">
+                                    <code>@System.IO.Path.GetFileName(Model.ConfigFilePath)</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 백업 키 다운로드 -->
+            @if (Model.BackupKeyExists)
+            {
+                <div class="card shadow border-warning mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> 중요: 백업 키 보관
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-3">
+                            <strong>백업 키 파일을 반드시 안전한 오프라인 저장소에 보관하세요!</strong>
+                        </p>
+                        <ul class="mb-3">
+                            <li>마스터 키 파일이 손상되거나 분실된 경우 백업 키로 복구할 수 있습니다.</li>
+                            <li>백업 키와 생성 시 입력한 암호를 함께 보관하세요.</li>
+                            <li>USB 드라이브, 외장 하드, 클라우드 스토리지 등에 백업을 권장합니다.</li>
+                        </ul>
+                        <div class="d-grid">
+                            <a href="@Url.Action("DownloadBackupKey", "Setup")" class="btn btn-warning btn-lg" download>
+                                <i class="bi bi-download"></i> 백업 키 다운로드
+                                (@System.IO.Path.GetFileName(Model.BackupKeyFilePath))
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- 다음 단계 안내 -->
+            <div class="card shadow border-info mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> 다음 단계
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li>백업 키 파일을 안전한 곳에 보관합니다.</li>
+                        <li>데이터베이스 연결을 확인합니다.</li>
+                        <li>필요한 테이블 및 초기 데이터를 설정합니다.</li>
+                        <li>서비스를 시작합니다.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- 홈으로 이동 버튼 -->
+            <div class="d-grid gap-2 mb-5">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-success btn-lg">
+                    <i class="bi bi-house"></i> 홈으로 이동하여 시작하기
+                </a>
+            </div>
+
+            <!-- 보안 경고 -->
+            <div class="alert alert-secondary text-center" role="alert">
+                <small class="text-muted">
+                    <i class="bi bi-shield-check"></i>
+                    모든 민감한 데이터는 암호화되어 저장되었습니다.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>

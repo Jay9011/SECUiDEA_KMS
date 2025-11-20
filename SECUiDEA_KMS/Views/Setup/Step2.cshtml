@@ -1,0 +1,278 @@
+@model SECUiDEA_KMS.Models.SetupViewModel
+@{
+    ViewData["Title"] = "초기 설치 - 데이터베이스 설정";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <!-- 진행 단계 표시 -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-success">Step @Model.CurrentStep / @Model.TotalSteps</span>
+                    <span class="text-muted"><small>마스터 키: <i class="bi bi-check-circle text-success"></i> 완료</small></span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: @((Model.CurrentStep * 100 / Model.TotalSteps))%"></div>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-database"></i> 데이터베이스 연결 설정
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i> @Model.StatusMessage
+                    </div>
+
+                    <form id="databaseForm">
+                        <div class="row">
+                            <!-- 서버 -->
+                            <div class="col-md-8 mb-3">
+                                <label for="server" class="form-label">서버 주소 *</label>
+                                <input type="text" class="form-control" id="server" name="Server" 
+                                       placeholder="localhost 또는 localhost\SQLEXPRESS" required>
+                                <div class="form-text">SQL Server 인스턴스 주소를 입력하세요.</div>
+                            </div>
+
+                            <!-- 포트 -->
+                            <div class="col-md-4 mb-3">
+                                <label for="port" class="form-label">포트</label>
+                                <input type="number" class="form-control" id="port" name="Port" 
+                                       value="1433" min="1" max="65535">
+                            </div>
+                        </div>
+
+                        <!-- 데이터베이스 이름 -->
+                        <div class="mb-3">
+                            <label for="database" class="form-label">데이터베이스 이름 *</label>
+                            <input type="text" class="form-control" id="database" name="Database" 
+                                   placeholder="MyDatabase" required>
+                        </div>
+
+                        <div class="row">
+                            <!-- 사용자 ID -->
+                            <div class="col-md-6 mb-3">
+                                <label for="userId" class="form-label">사용자 ID *</label>
+                                <input type="text" class="form-control" id="userId" name="UserId" 
+                                       placeholder="sa" required>
+                            </div>
+
+                            <!-- 비밀번호 -->
+                            <div class="col-md-6 mb-3">
+                                <label for="password" class="form-label">비밀번호 *</label>
+                                <input type="password" class="form-control" id="password" name="Password" required>
+                            </div>
+                        </div>
+
+                        <!-- 추가 옵션 -->
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="integratedSecurity" name="IntegratedSecurity">
+                                <label class="form-check-label" for="integratedSecurity">
+                                    Windows 통합 인증 사용
+                                </label>
+                            </div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" class="form-check-input" id="trustServerCertificate" 
+                                       name="TrustServerCertificate" checked>
+                                <label class="form-check-label" for="trustServerCertificate">
+                                    서버 인증서 신뢰
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- 버튼 그룹 -->
+                        <div class="d-grid gap-2">
+                            <button type="button" id="testConnectionBtn" class="btn btn-outline-primary">
+                                <i class="bi bi-plug"></i> 연결 테스트
+                            </button>
+                            <button type="submit" class="btn btn-success" disabled id="saveBtn">
+                                <i class="bi bi-check-circle"></i> 설정 저장 및 완료
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 상태 메시지 표시 영역 -->
+                    <div id="messageArea" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- 이전 단계 버튼 -->
+            <div class="mt-3 text-center">
+                <a href="@Url.Action("Step1", "Setup")" class="btn btn-link text-muted">
+                    <i class="bi bi-arrow-left"></i> 이전 단계로
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var connectionTested = false;
+
+            // Windows 통합 인증 체크박스 변경 시
+            $('#integratedSecurity').on('change', function() {
+                var isIntegrated = $(this).is(':checked');
+                $('#userId, #password').prop('disabled', isIntegrated);
+                if (isIntegrated) {
+                    $('#userId, #password').val('');
+                }
+                connectionTested = false;
+                $('#saveBtn').prop('disabled', true);
+            });
+
+            // 폼 입력 변경 시 연결 테스트 재실행 필요
+            $('#databaseForm input').on('change', function() {
+                if ($(this).attr('id') !== 'integratedSecurity' && $(this).attr('id') !== 'trustServerCertificate') {
+                    connectionTested = false;
+                    $('#saveBtn').prop('disabled', true);
+                }
+            });
+
+            // 연결 테스트
+            $('#testConnectionBtn').on('click', function() {
+                var formData = getFormData();
+
+                // 필수 필드 검증
+                if (!formData.Server || !formData.Database) {
+                    showMessage('warning', '서버 주소와 데이터베이스 이름은 필수입니다.');
+                    return;
+                }
+
+                if (!formData.IntegratedSecurity && (!formData.UserId || !formData.Password)) {
+                    showMessage('warning', '사용자 ID와 비밀번호를 입력하거나 Windows 통합 인증을 선택하세요.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("TestDatabaseConnection", "Setup")',
+                    method: 'POST',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    beforeSend: function() {
+                        $('#testConnectionBtn').prop('disabled', true)
+                            .html('<i class="bi bi-hourglass-split"></i> 테스트 중...');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('success', '✓ ' + response.message);
+                            connectionTested = true;
+                            $('#saveBtn').prop('disabled', false);
+                        } else {
+                            showMessage('danger', '✗ ' + response.message);
+                            connectionTested = false;
+                            $('#saveBtn').prop('disabled', true);
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = '연결 테스트 중 오류가 발생했습니다.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showMessage('danger', message);
+                        connectionTested = false;
+                        $('#saveBtn').prop('disabled', true);
+                    },
+                    complete: function() {
+                        $('#testConnectionBtn').prop('disabled', false)
+                            .html('<i class="bi bi-plug"></i> 연결 테스트');
+                    }
+                });
+            });
+
+            // 설정 저장
+            $('#databaseForm').on('submit', function(e) {
+                e.preventDefault();
+
+                if (!connectionTested) {
+                    showMessage('warning', '먼저 연결 테스트를 수행하세요.');
+                    return;
+                }
+
+                var formData = getFormData();
+
+                $.ajax({
+                    url: '@Url.Action("SaveDatabaseSettings", "Setup")',
+                    method: 'POST',
+                    data: JSON.stringify(formData),
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    beforeSend: function() {
+                        $('#saveBtn').prop('disabled', true)
+                            .html('<i class="bi bi-hourglass-split"></i> 저장 중...');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('success', response.message);
+
+                            // 2초 후 홈으로 이동
+                            setTimeout(function() {
+                                window.location.href = response.redirectUrl;
+                            }, 2000);
+                        } else {
+                            showMessage('danger', response.message);
+                            $('#saveBtn').prop('disabled', false);
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = '설정 저장 중 오류가 발생했습니다.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showMessage('danger', message);
+                        $('#saveBtn').prop('disabled', false);
+                    },
+                    complete: function() {
+                        if (!$('#saveBtn').prop('disabled')) {
+                            $('#saveBtn').html('<i class="bi bi-check-circle"></i> 설정 저장 및 완료');
+                        }
+                    }
+                });
+            });
+
+            // 폼 데이터 수집
+            function getFormData() {
+                return {
+                    Server: $('#server').val(),
+                    Port: parseInt($('#port').val()) || 1433,
+                    Database: $('#database').val(),
+                    UserId: $('#userId').val(),
+                    Password: $('#password').val(),
+                    IntegratedSecurity: $('#integratedSecurity').is(':checked'),
+                    TrustServerCertificate: $('#trustServerCertificate').is(':checked')
+                };
+            }
+
+            // 메시지 표시 함수
+            function showMessage(type, message) {
+                var alertClass = 'alert-' + type;
+                var icon = type === 'success' ? 'check-circle' : 
+                          (type === 'danger' ? 'x-circle' : 
+                          (type === 'warning' ? 'exclamation-triangle' : 'info-circle'));
+                var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                          '<i class="bi bi-' + icon + '"></i> ' + message +
+                          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                          '</div>';
+                $('#messageArea').html(html);
+            }
+        });
+    </script>
+}
+
+@Html.AntiForgeryToken()
+

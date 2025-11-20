@@ -1,0 +1,241 @@
+@model SECUiDEA_KMS.Models.SetupViewModel
+@{
+    ViewData["Title"] = "초기 설치 - 마스터 키 설정";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- 진행 단계 표시 -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-primary">Step @Model.CurrentStep / @Model.TotalSteps</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar bg-primary" role="progressbar" 
+                         style="width: @((Model.CurrentStep * 100 / Model.TotalSteps))%"></div>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-shield-lock"></i> 마스터 키 설정
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle"></i> @Model.StatusMessage
+                    </div>
+
+                    @if (Model.NeedNewKey)
+                    {
+                        <!-- 새 마스터 키 생성 -->
+                        <div id="createKeySection">
+                            <h5 class="mb-3">새 마스터 키 생성</h5>
+                            <p class="text-muted">
+                                마스터 키는 민감한 데이터를 암호화하는 데 사용됩니다.<br>
+                                백업 암호를 안전하게 보관하세요.
+                            </p>
+
+                            <form id="createKeyForm">
+                                <div class="mb-3">
+                                    <label for="backupPassword" class="form-label">백업 암호 (최소 8자)</label>
+                                    <input type="password" class="form-control" id="backupPassword" name="BackupPassword" required minlength="8">
+                                    <div class="form-text">이 암호는 마스터 키를 복구할 때 사용됩니다.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">백업 암호 확인</label>
+                                    <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" required minlength="8">
+                                </div>
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="agreeBackup" required>
+                                    <label class="form-check-label" for="agreeBackup">
+                                        백업 암호를 안전하게 보관하고, 백업 키 파일을 다운로드받겠습니다.
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-key"></i> 마스터 키 생성 및 다음 단계
+                                </button>
+                            </form>
+                        </div>
+                    }
+                    else if (Model.NeedBackupRecovery || Model.IsKeyFileCorrupted)
+                    {
+                        <!-- 백업에서 복구 -->
+                        <div id="recoverKeySection">
+                            <h5 class="mb-3">백업 키로부터 복구</h5>
+                            <p class="text-muted">
+                                백업 키 파일이 존재합니다. 복구 암호를 입력하세요.
+                            </p>
+
+                            <form id="recoverKeyForm">
+                                <div class="mb-3">
+                                    <label for="recoveryPassword" class="form-label">복구 암호</label>
+                                    <input type="password" class="form-control" id="recoveryPassword" name="RecoveryPassword" required>
+                                    <div class="form-text">마스터 키 생성 시 입력한 백업 암호를 입력하세요.</div>
+                                </div>
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-arrow-counterclockwise"></i> 복구 및 다음 단계
+                                </button>
+                            </form>
+                        </div>
+                    }
+
+                    <!-- 상태 메시지 표시 영역 -->
+                    <div id="messageArea" class="mt-3"></div>
+                </div>
+            </div>
+
+            <!-- 다음 단계 안내 -->
+            <div class="card mt-3 border-light">
+                <div class="card-body text-center text-muted">
+                    <small>
+                        <i class="bi bi-arrow-right-circle"></i> 
+                        다음: 데이터베이스 연결 설정
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // 새 마스터 키 생성
+            $('#createKeyForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var password = $('#backupPassword').val();
+                var confirm = $('#confirmPassword').val();
+
+                if (password !== confirm) {
+                    showMessage('danger', '백업 암호가 일치하지 않습니다.');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    showMessage('danger', '백업 암호는 최소 8자 이상이어야 합니다.');
+                    return;
+                }
+
+                var data = {
+                    backupPassword: password,
+                    confirmPassword: confirm
+                };
+
+                $.ajax({
+                    url: '@Url.Action("CreateMasterKey", "Setup")',
+                    method: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    beforeSend: function() {
+                        $('#createKeyForm button[type="submit"]').prop('disabled', true)
+                            .html('<i class="bi bi-hourglass-split"></i> 생성 중...');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('success', response.message);
+
+                            // 백업 키 다운로드 버튼 표시
+                            var downloadBtn = '<a href="@Url.Action("DownloadBackupKey", "Setup")" ' +
+                                'class="btn btn-warning mt-3 w-100">' +
+                                '<i class="bi bi-download"></i> 백업 키 다운로드</a>';
+                            $('#messageArea').append(downloadBtn);
+
+                            // 2초 후 다음 단계로 이동
+                            setTimeout(function() {
+                                window.location.href = response.nextStep;
+                            }, 2000);
+                        } else {
+                            showMessage('danger', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = '마스터 키 생성 중 오류가 발생했습니다.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showMessage('danger', message);
+                    },
+                    complete: function() {
+                        $('#createKeyForm button[type="submit"]').prop('disabled', false)
+                            .html('<i class="bi bi-key"></i> 마스터 키 생성 및 다음 단계');
+                    }
+                });
+            });
+
+            // 백업에서 복구
+            $('#recoverKeyForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var password = $('#recoveryPassword').val();
+
+                if (!password) {
+                    showMessage('danger', '복구 암호를 입력하세요.');
+                    return;
+                }
+
+                var data = {
+                    recoveryPassword: password
+                };
+
+                $.ajax({
+                    url: '@Url.Action("RecoverFromBackup", "Setup")',
+                    method: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    beforeSend: function() {
+                        $('#recoverKeyForm button[type="submit"]').prop('disabled', true)
+                            .html('<i class="bi bi-hourglass-split"></i> 복구 중...');
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showMessage('success', response.message);
+
+                            // 1초 후 다음 단계로 이동
+                            setTimeout(function() {
+                                window.location.href = response.nextStep;
+                            }, 1000);
+                        } else {
+                            showMessage('danger', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = '마스터 키 복구 중 오류가 발생했습니다.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        showMessage('danger', message);
+                    },
+                    complete: function() {
+                        $('#recoverKeyForm button[type="submit"]').prop('disabled', false)
+                            .html('<i class="bi bi-arrow-counterclockwise"></i> 복구 및 다음 단계');
+                    }
+                });
+            });
+
+            // 메시지 표시 함수
+            function showMessage(type, message) {
+                var alertClass = 'alert-' + type;
+                var icon = type === 'success' ? 'check-circle' : (type === 'danger' ? 'x-circle' : 'info-circle');
+                var html = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                          '<i class="bi bi-' + icon + '"></i> ' + message +
+                          '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                          '</div>';
+                $('#messageArea').html(html);
+            }
+        });
+    </script>
+}
+
+@Html.AntiForgeryToken()
+
