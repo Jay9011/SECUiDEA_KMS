@@ -21,4 +21,6 @@ public class GenerateKey_Proc : SQLParam
     public string? RequestUserAgent { get; set; }
     [DbParameter]
     public string? RequestHost { get; set; }
+    [DbParameter]
+    public bool SkipIpValidation { get; set; } = false;
 }

@@ -2,7 +2,7 @@
 GO
 -- =============================================
 -- 클라이언트를 위한 새 암호화 키 생성
--- Rate Limit 적용 및 IP 검증
+-- Rate Limit 적용 (IP 검증은 Service 레이어에서 수행)
 -- =============================================
 CREATE PROCEDURE GenerateKey
     @ClientGuid             UNIQUEIDENTIFIER,
@@ -12,7 +12,8 @@ CREATE PROCEDURE GenerateKey
     @RotationScheduleDays   INT             = NULL, -- 자동 회전 주기
     @RequestIP              NVARCHAR(50)    = NULL,
     @RequestUserAgent       NVARCHAR(500)   = NULL,
-    @RequestHost            NVARCHAR(200)   = NULL
+    @RequestHost            NVARCHAR(200)   = NULL,
+    @SkipIpValidation       BIT             = 0 -- IP 검증 스킵 여부 (관리자=1, 외부=0)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -38,13 +39,8 @@ BEGIN
             THROW 50010, @ErrorMessage, 1;
         END
         
-        -- ClientGuid로 ClientId 조회 및 IP 검증
-        DECLARE @RegisteredIP NVARCHAR(50);
-        DECLARE @ValidationMode NVARCHAR(50);
-        
-        SELECT  @ClientId = ClientId,
-                @RegisteredIP = ClientIP,
-                @ValidationMode = IPValidationMode
+        -- ClientGuid로 ClientId 조회 (IP 검증은 Service 레이어에서 수행됨)
+        SELECT  @ClientId = ClientId
         FROM    ClientServers 
         WHERE   ClientGuid = @ClientGuid 
           AND   IsActive = 1;
@@ -60,24 +56,6 @@ BEGIN
                     CAST(@ClientGuid AS NVARCHAR(50)), @RequestIP, 'Denied', @ErrorMessage);
             
             THROW 50001, @ErrorMessage, 1;
-        END
-        
-        -- IP 주소 검증 (Strict 모드인 경우)
-        IF (@ValidationMode = 'Strict' AND @RequestIP IS NOT NULL AND @RegisteredIP != @RequestIP)
-        BEGIN
-            SET @ErrorCode = '1002';
-            SET @ErrorMessage = 'IP address not allowed';
-            
-            -- 보안 이벤트 로그
-            DECLARE @IPMismatchJson NVARCHAR(MAX) = 
-                '{"RegisteredIP":"' + ISNULL(@RegisteredIP, '') + 
-                '","RequestIP":"' + ISNULL(@RequestIP, '') + '"}';
-            
-            INSERT INTO AuditLogs (EventType, Severity, ResourceType, ResourceId, Actor, ActorIP, ActionResult, Details)
-            VALUES ('IPMismatch', 'Warning', 'Key', CAST(@ClientId AS NVARCHAR(50)),
-                    CAST(@ClientGuid AS NVARCHAR(50)), @RequestIP, 'Denied', @IPMismatchJson);
-            
-            THROW 50002, @ErrorMessage, 1;
         END
         
         -- 자동 회전 설정 검증
@@ -132,12 +110,15 @@ BEGIN
         FROM    EncryptionKeys
         WHERE   KeyId = @KeyId;
         
-        -- 감사 로그
+        -- 감사 로그 (검증 스킵 여부 포함)
+        DECLARE @ValidationSource NVARCHAR(20) = CASE WHEN @SkipIpValidation = 1 THEN 'Admin' ELSE 'External' END;
         DECLARE @KeyGenJson NVARCHAR(MAX) = 
             '{"KeyId":' + CAST(@KeyId AS NVARCHAR(20)) + 
             ',"ExpiresAt":"' + CONVERT(NVARCHAR(50), @ExpiresAt, 127) + 
             '","IsAutoRotation":' + CAST(@IsAutoRotation AS NVARCHAR(1)) + 
-            ',"RotationScheduleDays":' + ISNULL(CAST(@RotationScheduleDays AS NVARCHAR(10)), 'null') + '}';
+            ',"RotationScheduleDays":' + ISNULL(CAST(@RotationScheduleDays AS NVARCHAR(10)), 'null') + 
+            ',"ValidationSource":"' + @ValidationSource + 
+            '","SkipIpValidation":' + CAST(@SkipIpValidation AS NVARCHAR(1)) + '}';
         
         INSERT INTO AuditLogs (EventType, Severity, ResourceType, ResourceId, Actor, ActorIP, ActionResult, Details)
         VALUES ('KeyGenerated', 'Info', 'Key', CAST(@KeyId AS NVARCHAR(50)), 

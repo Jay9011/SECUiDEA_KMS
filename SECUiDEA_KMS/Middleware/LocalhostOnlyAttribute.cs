@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace SECUiDEA_KMS.Services;
+namespace SECUiDEA_KMS.Middleware;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class LocalhostonlyAttribute : ActionFilterAttribute
+public class LocalhostOnlyAttribute : ActionFilterAttribute
 {
     public override void OnActionExecuting(ActionExecutingContext context)
     {

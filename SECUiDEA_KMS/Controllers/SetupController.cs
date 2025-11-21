@@ -1,5 +1,6 @@
 using CryptoManager;
 using Microsoft.AspNetCore.Mvc;
+using SECUiDEA_KMS.Middleware;
 using SECUiDEA_KMS.Models;
 using SECUiDEA_KMS.Models.Settings;
 using SECUiDEA_KMS.Models.Setup;
@@ -15,7 +16,7 @@ namespace SECUiDEA_KMS.Controllers;
 /// Step 2: 데이터베이스 설정
 /// </summary>
 [SupportedOSPlatform("windows")]
-[Localhostonly]
+[LocalhostOnly]
 public class SetupController : Controller
 {
     private readonly MasterKeyService _masterKeyService;

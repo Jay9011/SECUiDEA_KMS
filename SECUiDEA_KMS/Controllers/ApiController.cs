@@ -94,7 +94,8 @@ public class ApiController : ControllerBase
             }
         }
 
-        var response = await _keyService.GenerateKeyAsync(request);
+        // 외부 클라이언트 요청이므로 IP 검증 수행
+        var response = await _keyService.GenerateKeyAsync(request, skipIpValidation: false);
 
         return MapKmsResponse(response);
     }

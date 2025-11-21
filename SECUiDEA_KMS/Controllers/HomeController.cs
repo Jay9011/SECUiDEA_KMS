@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using SECUiDEA_KMS.Middleware;
 using SECUiDEA_KMS.Models;
 using SECUiDEA_KMS.Models.ClientServers;
 using SECUiDEA_KMS.Models.KeyRequests;
@@ -7,7 +8,7 @@ using SECUiDEA_KMS.Services;
 
 namespace SECUiDEA_KMS.Controllers
 {
-    [Localhostonly]
+    [LocalhostOnly]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -132,7 +133,8 @@ namespace SECUiDEA_KMS.Controllers
                 }
             }
 
-            var response = await _keyService.GenerateKeyAsync(request);
+            // 관리자 요청이므로 IP 검증 스킵
+            var response = await _keyService.GenerateKeyAsync(request, skipIpValidation: true);
 
             if (!response.IsSuccess)
             {

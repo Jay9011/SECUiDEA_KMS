@@ -1,5 +1,6 @@
 using CryptoManager;
 using SECUiDEA_KMS.Models;
+using SECUiDEA_KMS.Models.ClientServers;
 using SECUiDEA_KMS.Models.EncryptionKeys;
 using SECUiDEA_KMS.Models.KeyRequests;
 using SECUiDEA_KMS.Repositories;
@@ -15,13 +16,20 @@ public class KeyService
 {
     #region 의존 주입
     private readonly IKeyRepository _keyRepository;
+    private readonly IClientRepository _clientRepository;
     private readonly ICryptoManager _cryptoManager;
     private readonly HttpContextHelper _httpContextHelper;
     private readonly ILogger<KeyService> _logger;
 
-    public KeyService(IKeyRepository keyRepository, ICryptoManager cryptoManager, HttpContextHelper httpContextHelper, ILogger<KeyService> logger)
+    public KeyService(
+        IKeyRepository keyRepository,
+        IClientRepository clientRepository,
+        ICryptoManager cryptoManager,
+        HttpContextHelper httpContextHelper,
+        ILogger<KeyService> logger)
     {
         _keyRepository = keyRepository;
+        _clientRepository = clientRepository;
         _cryptoManager = cryptoManager;
         _httpContextHelper = httpContextHelper;
         _logger = logger;
@@ -32,15 +40,59 @@ public class KeyService
     /// 새 암호화 키 생성
     /// 클라이언트용 AES-256 키를 생성하고 마스터 키로 암호화하여 저장
     /// </summary>
-    public async Task<KmsResponse<EncryptionKeyEntity>> GenerateKeyAsync(KeyGenerationReqDTO request)
+    /// <param name="request">키 생성 요청 정보</param>
+    /// <param name="skipIpValidation">IP 검증 스킵 여부 (관리자용 = true, 외부 클라이언트 = false)</param>
+    public async Task<KmsResponse<EncryptionKeyEntity>> GenerateKeyAsync(KeyGenerationReqDTO request, bool skipIpValidation = false)
     {
         try
         {
-            _logger.LogInformation("키 생성 시작: ClientGuid={ClientGuid}, IsAutoRotation={IsAutoRotation}",
-                request.ClientGuid, request.IsAutoRotation);
+            _logger.LogInformation("키 생성 시작: ClientGuid={ClientGuid}, IsAutoRotation={IsAutoRotation}, SkipIpValidation={SkipIpValidation}",
+                request.ClientGuid, request.IsAutoRotation, skipIpValidation);
 
             // 요청 정보 추출
             var requestInfo = _httpContextHelper.GetRequestInfo();
+
+            // IP 검증 (외부 클라이언트만)
+            if (!skipIpValidation)
+            {
+                var clientInfo = await _clientRepository.GetClientInfoAsync(
+                    new ClientServerEntity { ClientGuid = request.ClientGuid });
+
+                if (!clientInfo.IsSuccess || clientInfo.Data == null)
+                {
+                    _logger.LogWarning("클라이언트 정보 조회 실패: ClientGuid={ClientGuid}", request.ClientGuid);
+                    return new KmsResponse<EncryptionKeyEntity>
+                    {
+                        ErrorCode = "1001",
+                        ErrorMessage = "Client not found or inactive",
+                        Data = null
+                    };
+                }
+
+                // Strict 모드에서 IP 검증
+                if (clientInfo.Data.IPValidationMode == "Strict")
+                {
+                    if (requestInfo.RequestIP != clientInfo.Data.ClientIP)
+                    {
+                        _logger.LogWarning("IP 불일치: ClientGuid={ClientGuid}, 등록IP={RegisteredIP}, 요청IP={RequestIP}",
+                            request.ClientGuid, clientInfo.Data.ClientIP, requestInfo.RequestIP);
+
+                        return new KmsResponse<EncryptionKeyEntity>
+                        {
+                            ErrorCode = "1002",
+                            ErrorMessage = "IP address not allowed",
+                            Data = null
+                        };
+                    }
+                }
+
+                _logger.LogInformation("IP 검증 통과: ClientGuid={ClientGuid}, IP={RequestIP}, Mode={Mode}",
+                    request.ClientGuid, requestInfo.RequestIP, clientInfo.Data.IPValidationMode);
+            }
+            else
+            {
+                _logger.LogInformation("IP 검증 스킵 (관리자 요청): ClientGuid={ClientGuid}", request.ClientGuid);
+            }
 
             // 새 AES-256 키 생성 (32바이트 = 256비트)
             var aesKey = new byte[32];
@@ -57,7 +109,8 @@ public class KeyService
                     EncryptedKeyData = encryptedKeyData,
                     IsAutoRotation = request.IsAutoRotation,
                     ExpirationDays = request.ExpirationDays,
-                    RotationScheduleDays = request.RotationScheduleDays
+                    RotationScheduleDays = request.RotationScheduleDays,
+                    SkipIpValidation = skipIpValidation  // SP에 플래그 전달
                 },
                 requestInfo);
 
