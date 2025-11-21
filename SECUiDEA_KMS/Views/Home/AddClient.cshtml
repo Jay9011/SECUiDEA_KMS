@@ -1,0 +1,79 @@
+@using SECUiDEA_KMS.Models.ClientServers
+@model RegisterClientDTO
+@{
+    ViewData["Title"] = "클라이언트 추가";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">새 클라이언트 추가</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddClient" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="ClientName" class="form-label">클라이언트 이름 <span class="text-danger">*</span></label>
+                            <input asp-for="ClientName" class="form-control" placeholder="예: Production Server" />
+                            <span asp-validation-for="ClientName" class="text-danger"></span>
+                            <small class="form-text text-muted">클라이언트 서버 또는 애플리케이션의 이름을 입력하세요.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ClientIP" class="form-label">IP 주소 <span class="text-danger">*</span></label>
+                            <input asp-for="ClientIP" class="form-control" placeholder="예: 192.168.1.100" />
+                            <span asp-validation-for="ClientIP" class="text-danger"></span>
+                            <small class="form-text text-muted">클라이언트의 고정 IP 주소를 입력하세요. (IPv4 또는 IPv6)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IPValidationMode" class="form-label">IP 검증 모드 <span class="text-danger">*</span></label>
+                            <select asp-for="IPValidationMode" class="form-select">
+                                <option value="Strict">Strict - 등록된 IP만 허용</option>
+                                <option value="None">None - IP 검증 안 함</option>
+                            </select>
+                            <span asp-validation-for="IPValidationMode" class="text-danger"></span>
+                            <small class="form-text text-muted">
+                                <strong>Strict:</strong> 등록된 IP 주소와 요청 IP가 일치해야 합니다.<br />
+                                <strong>None:</strong> IP 검증을 하지 않습니다. (보안 주의)
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">설명</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" placeholder="클라이언트에 대한 설명을 입력하세요."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Clients" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> 취소
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 등록
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle"></i> 
+                <strong>안내:</strong> 클라이언트 등록 시 GUID가 자동으로 생성됩니다. 
+                생성된 GUID는 클라이언트에게 안전하게 전달하세요.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

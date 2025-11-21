@@ -3,7 +3,7 @@ namespace SECUiDEA_KMS.Models;
 /// <summary>
 /// 마스터 키 초기화 상태
 /// </summary>
-public enum InitializationStatus
+public enum EInitializationStatus
 {
     /// <summary>초기화 완료</summary>
     Initialized,

@@ -1,9 +1,11 @@
-using System.Runtime.Versioning;
+using CryptoManager;
 using Microsoft.AspNetCore.Mvc;
 using SECUiDEA_KMS.Models;
+using SECUiDEA_KMS.Models.Settings;
+using SECUiDEA_KMS.Models.Setup;
 using SECUiDEA_KMS.Services;
-using CryptoManager;
 using SECUiDEACryptoManager.Services;
+using System.Runtime.Versioning;
 
 namespace SECUiDEA_KMS.Controllers;
 
@@ -13,6 +15,7 @@ namespace SECUiDEA_KMS.Controllers;
 /// Step 2: 데이터베이스 설정
 /// </summary>
 [SupportedOSPlatform("windows")]
+[Localhostonly]
 public class SetupController : Controller
 {
     private readonly MasterKeyService _masterKeyService;
@@ -39,14 +42,10 @@ public class SetupController : Controller
 
     /// <summary>
     /// Setup 메인 페이지 - Middleware에서 상태에 따라 리다이렉트됨
-    /// 이 액션은 직접 호출되지 않으며, Middleware가 모든 라우팅을 처리합니다.
     /// </summary>
     [HttpGet]
     public IActionResult Index()
     {
-        // Middleware에서 이미 적절한 경로로 리다이렉트하므로
-        // 이 액션에 도달하는 경우는 거의 없습니다.
-        // 혹시 도달하면 Completed로 보냅니다.
         return RedirectToAction(nameof(Completed));
     }
 
@@ -122,9 +121,9 @@ public class SetupController : Controller
         {
             Status = status,
             IsInitialized = _masterKeyService.IsInitialized,
-            NeedBackupRecovery = status == InitializationStatus.NeedBackupRecovery,
-            NeedNewKey = status == InitializationStatus.NeedNewKey,
-            IsKeyFileCorrupted = status == InitializationStatus.KeyFileCorrupted,
+            NeedBackupRecovery = status == EInitializationStatus.NeedBackupRecovery,
+            NeedNewKey = status == EInitializationStatus.NeedNewKey,
+            IsKeyFileCorrupted = status == EInitializationStatus.KeyFileCorrupted,
             StatusMessage = GetStatusMessage(status),
             CurrentStep = 1,
             TotalSteps = 2
@@ -138,7 +137,7 @@ public class SetupController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreateMasterKey([FromBody] CreateKeyRequest request)
+    public async Task<IActionResult> CreateMasterKey([FromBody] CreateKeyReqDTO request)
     {
         if (!ModelState.IsValid)
         {
@@ -183,7 +182,7 @@ public class SetupController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RecoverFromBackup([FromBody] RecoverKeyRequest request)
+    public async Task<IActionResult> RecoverFromBackup([FromBody] RecoverKeyReqDTO request)
     {
         if (!ModelState.IsValid)
         {
@@ -416,14 +415,14 @@ public class SetupController : Controller
     /// <summary>
     /// 상태 메시지 반환
     /// </summary>
-    private string GetStatusMessage(InitializationStatus status)
+    private string GetStatusMessage(EInitializationStatus status)
     {
         return status switch
         {
-            InitializationStatus.Initialized => "마스터 키가 정상적으로 로드되었습니다.",
-            InitializationStatus.NeedNewKey => "새 마스터 키를 생성해야 합니다.",
-            InitializationStatus.NeedBackupRecovery => "백업 키로부터 복구가 필요합니다.",
-            InitializationStatus.KeyFileCorrupted => "키 파일이 손상되었습니다. 백업에서 복구하세요.",
+            EInitializationStatus.Initialized => "마스터 키가 정상적으로 로드되었습니다.",
+            EInitializationStatus.NeedNewKey => "새 마스터 키를 생성해야 합니다.",
+            EInitializationStatus.NeedBackupRecovery => "백업 키로부터 복구가 필요합니다.",
+            EInitializationStatus.KeyFileCorrupted => "키 파일이 손상되었습니다. 백업에서 복구하세요.",
             _ => "알 수 없는 상태입니다."
         };
     }

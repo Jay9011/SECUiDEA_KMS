@@ -1,4 +1,6 @@
-﻿namespace SECUiDEA_KMS.Services;
+﻿using SECUiDEA_KMS.Models;
+
+namespace SECUiDEA_KMS.Services;
 
 public class HttpContextHelper
 {
@@ -64,5 +66,16 @@ public class HttpContextHelper
             return ipAddress;
 
         return null;
+    }
+
+    public RequestInfo GetRequestInfo()
+    {
+        return new RequestInfo()
+        {
+            RequestIP = GetClientIpAddress(),
+            RequestUserAgent = request?.Headers["User-Agent"].FirstOrDefault(),
+            RequestHost = request?.Headers["Host"].FirstOrDefault(),
+            RequestPath = request?.Path
+        };
     }
 }

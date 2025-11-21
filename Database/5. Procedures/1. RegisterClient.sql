@@ -1,4 +1,6 @@
-﻿-- =============================================
+﻿DROP PROCEDURE IF EXISTS RegisterClient;
+GO
+-- =============================================
 -- 새로운 클라이언트를 KMS에 등록 (관리자용)
 -- GUID는 서버에서 자동 생성하여 반환
 -- =============================================
@@ -34,6 +36,9 @@ BEGIN
         VALUES (@ClientName, @ClientIP, @Description, @IPValidationMode, @CreatedBy);
         
         SET @ClientId = SCOPE_IDENTITY();
+        
+        -- 등록된 클라이언트 정보 반환
+        SELECT * FROM ClientServers WHERE ClientId = @ClientId;
         
         -- 감사 로그
         DECLARE @JsonDetails NVARCHAR(MAX) = 

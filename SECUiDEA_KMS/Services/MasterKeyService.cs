@@ -59,18 +59,18 @@ public class MasterKeyService
     /// <summary>
     /// 초기화 상태 확인
     /// </summary>
-    public InitializationStatus GetInitializationStatus()
+    public EInitializationStatus GetInitializationStatus()
     {
         if (IsInitialized)
-            return InitializationStatus.Initialized;
+            return EInitializationStatus.Initialized;
 
         if (File.Exists(_keyFilePath))
-            return InitializationStatus.KeyFileCorrupted;
+            return EInitializationStatus.KeyFileCorrupted;
 
         if (File.Exists(_backupKeyFilePath))
-            return InitializationStatus.NeedBackupRecovery;
+            return EInitializationStatus.NeedBackupRecovery;
 
-        return InitializationStatus.NeedNewKey;
+        return EInitializationStatus.NeedNewKey;
     }
 
     /// <summary>

@@ -16,5 +16,9 @@
 
         public const string Database = "Database";
         public const string Key_DB_SECUiDEA = Database + SectionSeparator + SECUiDEA;
+
+
+        public const string DbErrorCode_Success = "0000";
+        public const string DbErrorMessage_Success = "Success";
     }
 }

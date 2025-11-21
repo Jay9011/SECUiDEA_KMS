@@ -1,5 +1,5 @@
 using CoreDAL.Configuration;
-using SECUiDEA_KMS.Models;
+using SECUiDEA_KMS.Models.Settings;
 
 namespace SECUiDEA_KMS.Services;
 

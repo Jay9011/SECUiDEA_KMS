@@ -1,0 +1,241 @@
+@model SECUiDEA_KMS.Models.ClientServerEntity
+@{
+    ViewData["Title"] = "클라이언트 상세";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>클라이언트 상세 정보</h2>
+        <a asp-action="Clients" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> 목록으로
+        </a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ClientGuid"] != null)
+    {
+        <div class="alert alert-warning" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> 중요: Client GUID</h5>
+            <p>생성된 Client GUID를 안전하게 보관하세요:</p>
+            <div class="input-group mb-2">
+                <input type="text" class="form-control" id="clientGuidInput" value="@TempData["ClientGuid"]" readonly />
+                <button class="btn btn-outline-secondary" type="button" onclick="copyGuid()">
+                    <i class="bi bi-clipboard"></i> 복사
+                </button>
+            </div>
+            <small>이 GUID는 클라이언트가 API를 호출할 때 필요합니다.</small>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">기본 정보</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%;">상태:</th>
+                            <td>
+                                @if (Model.IsActive ?? false)
+                                {
+                                    <span class="status-indicator status-active"></span>
+                                    <span class="text-success">활성</span>
+                                }
+                                else
+                                {
+                                    <span class="status-indicator status-inactive"></span>
+                                    <span class="text-danger">비활성</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>클라이언트 ID:</th>
+                            <td>@Model.ClientId</td>
+                        </tr>
+                        <tr>
+                            <th>Client GUID:</th>
+                            <td><code class="small">@Model.ClientGuid</code></td>
+                        </tr>
+                        <tr>
+                            <th>클라이언트명:</th>
+                            <td><strong>@Model.ClientName</strong></td>
+                        </tr>
+                        <tr>
+                            <th>IP 주소:</th>
+                            <td>@Model.ClientIP</td>
+                        </tr>
+                        <tr>
+                            <th>IP 검증 모드:</th>
+                            <td>
+                                <span class="badge bg-@(Model.IPValidationMode == "Strict" ? "warning" : "secondary")">
+                                    @Model.IPValidationMode
+                                </span>
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Description))
+                        {
+                            <tr>
+                                <th>설명:</th>
+                                <td>@Model.Description</td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">접근 정보</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th style="width: 40%;">생성일시:</th>
+                            <td>@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        </tr>
+                        <tr>
+                            <th>생성자:</th>
+                            <td>@Model.CreatedBy</td>
+                        </tr>
+                        @if (Model.ModifiedAt.HasValue)
+                        {
+                            <tr>
+                                <th>수정일시:</th>
+                                <td>@Model.ModifiedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                            <tr>
+                                <th>수정자:</th>
+                                <td>@Model.ModifiedBy</td>
+                            </tr>
+                        }
+                        @if (Model.LastAccessAt.HasValue)
+                        {
+                            <tr>
+                                <th>마지막 접근:</th>
+                                <td>@Model.LastAccessAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            </tr>
+                            <tr>
+                                <th>마지막 접근 IP:</th>
+                                <td>@Model.LastAccessIP</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <th>마지막 접근:</th>
+                                <td><span class="text-muted">접근 기록 없음</span></td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">키 생성</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="GenerateKey" method="post" id="generateKeyForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ClientGuid" value="@Model.ClientGuid" />
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">키 타입</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="IsAutoRotation" id="isPermanent"
+                                    value="false" checked onchange="toggleRotationFields()">
+                                <label class="form-check-label" for="isPermanent">
+                                    반영구적 키 (10년)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="IsAutoRotation" id="isAutoRotation"
+                                    value="true" onchange="toggleRotationFields()">
+                                <label class="form-check-label" for="isAutoRotation">
+                                    자동 회전 키
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4" id="expirationDaysField" style="display: none;">
+                        <div class="mb-3">
+                            <label for="ExpirationDays" class="form-label">만료 일수</label>
+                            <input type="number" class="form-control" id="ExpirationDays" name="ExpirationDays" min="1"
+                                max="3650" placeholder="예: 90" />
+                            <small class="form-text text-muted">키가 만료되는 일수 (1-3650일)</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4" id="rotationScheduleField" style="display: none;">
+                        <div class="mb-3">
+                            <label for="RotationScheduleDays" class="form-label">회전 스케줄 (일)</label>
+                            <input type="number" class="form-control" id="RotationScheduleDays"
+                                name="RotationScheduleDays" min="1" max="365" placeholder="예: 30" />
+                            <small class="form-text text-muted">키를 회전할 주기 (1-365일)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-key"></i> 키 생성
+                </button>
+            </form>
+
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle"></i>
+                <strong>안내:</strong>
+                키 생성 시 새로운 AES-256 키가 생성되어 마스터 키로 암호화됩니다.
+                기존 활성 키는 자동으로 만료 처리됩니다.
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyGuid() {
+            const input = document.getElementById('clientGuidInput');
+            input.select();
+            document.execCommand('copy');
+            alert('GUID가 클립보드에 복사되었습니다.');
+        }
+
+        function toggleRotationFields() {
+            const isAutoRotation = document.getElementById('isAutoRotation').checked;
+            document.getElementById('expirationDaysField').style.display = isAutoRotation ? 'block' : 'none';
+            document.getElementById('rotationScheduleField').style.display = isAutoRotation ? 'block' : 'none';
+
+            if (isAutoRotation) {
+                document.getElementById('ExpirationDays').required = true;
+                document.getElementById('RotationScheduleDays').required = true;
+            } else {
+                document.getElementById('ExpirationDays').required = false;
+                document.getElementById('RotationScheduleDays').required = false;
+            }
+        }
+    </script>
+}

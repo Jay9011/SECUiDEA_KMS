@@ -1,6 +1,6 @@
 ﻿using CoreDAL.Configuration.Models;
 
-namespace SECUiDEA_KMS.Models;
+namespace SECUiDEA_KMS.Models.Settings;
 
 public class MsSqlDbSettings : MsSqlConnectionInfo
 {

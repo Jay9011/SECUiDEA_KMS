@@ -1,4 +1,4 @@
-namespace SECUiDEA_KMS.Models;
+namespace SECUiDEA_KMS.Models.Setup;
 
 /// <summary>
 /// Setup 페이지 ViewModel
@@ -6,7 +6,7 @@ namespace SECUiDEA_KMS.Models;
 public class SetupViewModel
 {
     /// <summary>초기화 상태</summary>
-    public InitializationStatus Status { get; set; }
+    public EInitializationStatus Status { get; set; }
 
     /// <summary>초기화 완료 여부</summary>
     public bool IsInitialized { get; set; }
