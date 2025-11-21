@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS RevokeKey;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'RevokeKey')
+BEGIN
+    DROP PROCEDURE RevokeKey;
+END
 GO
 -- =============================================
 -- 키를 즉시 폐기 (보안 사고 발생 시)

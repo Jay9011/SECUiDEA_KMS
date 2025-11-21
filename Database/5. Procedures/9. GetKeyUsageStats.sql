@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS GetKeyUsageStats;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GetKeyUsageStats')
+BEGIN
+    DROP PROCEDURE GetKeyUsageStats;
+END
 GO
 -- =============================================
 -- 클라이언트별 키 사용 통계 조회

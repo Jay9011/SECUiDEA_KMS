@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS InitializeRateLimitSettings;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'InitializeRateLimitSettings')
+BEGIN
+    DROP PROCEDURE InitializeRateLimitSettings;
+END
 GO
 -- =============================================
 -- Rate Limit 설정 초기화

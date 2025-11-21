@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS RotateKey;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'RotateKey')
+BEGIN
+    DROP PROCEDURE RotateKey;
+END
 GO
 -- =============================================
 -- 기존 키를 새 키로 교체 (키 회전)

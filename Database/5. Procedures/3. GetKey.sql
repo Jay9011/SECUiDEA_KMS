@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS GetKey;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GetKey')
+BEGIN
+    DROP PROCEDURE GetKey;
+END
 GO
 -- =============================================
 -- 클라이언트 GUID로 활성 암호화 키 조회

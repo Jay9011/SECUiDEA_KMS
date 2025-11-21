@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS UpdateClientInfo;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'UpdateClientInfo')
+BEGIN
+    DROP PROCEDURE UpdateClientInfo;
+END
 GO
 -- =============================================
 -- 클라이언트 정보 업데이트

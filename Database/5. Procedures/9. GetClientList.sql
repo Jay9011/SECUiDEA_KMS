@@ -1,4 +1,7 @@
-DROP PROCEDURE IF EXISTS GetClientList;
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GetClientList')
+BEGIN
+    DROP PROCEDURE GetClientList;
+END
 GO
 -- =============================================
 -- 클라이언트 리스트를 페이징하여 조회

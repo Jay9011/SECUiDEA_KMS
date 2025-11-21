@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS GenerateKey;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GenerateKey')
+BEGIN
+    DROP PROCEDURE GenerateKey;
+END
 GO
 -- =============================================
 -- 클라이언트를 위한 새 암호화 키 생성
@@ -39,7 +42,7 @@ BEGIN
             THROW 50010, @ErrorMessage, 1;
         END
         
-        -- ClientGuid로 ClientId 조회 (IP 검증은 Service 레이어에서 수행됨)
+        -- ClientGuid로 ClientId 조회
         SELECT  @ClientId = ClientId
         FROM    ClientServers 
         WHERE   ClientGuid = @ClientGuid 

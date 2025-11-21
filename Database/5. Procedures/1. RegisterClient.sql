@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS RegisterClient;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'RegisterClient')
+BEGIN
+    DROP PROCEDURE RegisterClient;
+END
 GO
 -- =============================================
 -- 새로운 클라이언트를 KMS에 등록 (관리자용)

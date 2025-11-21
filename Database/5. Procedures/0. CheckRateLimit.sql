@@ -1,4 +1,7 @@
-﻿DROP PROCEDURE IF EXISTS CheckRateLimit;
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'CheckRateLimit')
+BEGIN
+    DROP PROCEDURE CheckRateLimit;
+END
 GO
 -- =============================================
 -- Rate Limit 체크 및 기록 (내부 사용)
