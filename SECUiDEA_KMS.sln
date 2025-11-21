@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36705.20 d17.14
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11217.181 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SECUiDEA_KMS", "SECUiDEA_KMS\SECUiDEA_KMS.csproj", "{26FFBC14-308C-45B3-AF3F-939255D846E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APITests", "APITests\APITests.csproj", "{732949A2-BA79-44E9-A230-E3CA32A571EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{26FFBC14-308C-45B3-AF3F-939255D846E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{26FFBC14-308C-45B3-AF3F-939255D846E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{26FFBC14-308C-45B3-AF3F-939255D846E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{732949A2-BA79-44E9-A230-E3CA32A571EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{732949A2-BA79-44E9-A230-E3CA32A571EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{732949A2-BA79-44E9-A230-E3CA32A571EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{732949A2-BA79-44E9-A230-E3CA32A571EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
