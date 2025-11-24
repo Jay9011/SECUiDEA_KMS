@@ -145,53 +145,7 @@ public class KeyService
     /// </summary>
     public async Task<KmsResponse<string>> GetKeyAsync(Guid clientGuid)
     {
-        try
-        {
-            _logger.LogInformation("키 조회 시작: ClientGuid={ClientGuid}", clientGuid);
-
-            // 요청 정보 추출
-            var requestInfo = _httpContextHelper.GetRequestInfo();
-
-            // Repository를 통해 암호화된 키 조회
-            var response = await _keyRepository.GetKeyAsync(new GetKey_Proc()
-            {
-                ClientGuid = clientGuid
-            }, requestInfo);
-
-            if (!response.IsSuccess || response.Data == null)
-            {
-                _logger.LogWarning("키 조회 실패: {ErrorCode} - {ErrorMessage}", response.ErrorCode, response.ErrorMessage);
-                return new KmsResponse<string>
-                {
-                    ErrorCode = response.ErrorCode,
-                    ErrorMessage = response.ErrorMessage,
-                    Data = null
-                };
-            }
-
-            // 마스터 키로 복호화
-            var encryptedKeyBase64 = Convert.ToBase64String(response.Data.EncryptedKeyData);
-            var decryptedKeyBase64 = _cryptoManager.Decrypt(encryptedKeyBase64);
-
-            _logger.LogInformation("키 조회 성공: KeyId={KeyId}, KeyVersion={KeyVersion}", response.Data.KeyId, response.Data.KeyVersion);
-
-            return new KmsResponse<string>
-            {
-                ErrorCode = "0000",
-                ErrorMessage = "Success",
-                Data = decryptedKeyBase64 // Base64 인코딩된 키 반환
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "키 조회 중 예외 발생");
-            return new KmsResponse<string>
-            {
-                ErrorCode = "9999",
-                ErrorMessage = $"Service Exception: 키 조회 중 오류 발생: {ex.Message}",
-                Data = null
-            };
-        }
+        return await GetAndDecryptKeyAsync(clientGuid, "Current", "키 조회");
     }
 
     /// <summary>
@@ -201,51 +155,7 @@ public class KeyService
     /// <returns>이전 버전의 Key</returns>
     public async Task<KmsResponse<string>> GetPreviousKeyAsync(Guid clientGuid)
     {
-        try
-        {
-            _logger.LogInformation("이전 버전의 Key 획득 시작: ClientGuid={ClientGuid}", clientGuid);
-
-            var requestInfo = _httpContextHelper.GetRequestInfo();
-            var response = await _keyRepository.GetPreviousKeyAsync(new GetKey_Proc()
-            {
-                ClientGuid = clientGuid,
-                Type = "Previous"
-            }, requestInfo);
-
-            if (!response.IsSuccess || response.Data == null)
-            {
-                _logger.LogWarning("이전 버전의 Key 획득 실패: {ErrorCode} - {ErrorMessage}", response.ErrorCode, response.ErrorMessage);
-                return new KmsResponse<string>
-                {
-                    ErrorCode = response.ErrorCode,
-                    ErrorMessage = response.ErrorMessage,
-                    Data = null
-                };
-            }
-
-            // 마스터 키로 복호화
-            var encryptedKeyBase64 = Convert.ToBase64String(response.Data.EncryptedKeyData);
-            var decryptedKeyBase64 = _cryptoManager.Decrypt(encryptedKeyBase64);
-
-            _logger.LogInformation("이전 버전의 Key 획득 성공: KeyId={KeyId}, KeyVersion={KeyVersion}", response.Data.KeyId, response.Data.KeyVersion);
-
-            return new KmsResponse<string>
-            {
-                ErrorCode = "0000",
-                ErrorMessage = "Success",
-                Data = decryptedKeyBase64 // Base64 인코딩된 키 반환
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "이전 버전의 Key 획득 중 예외 발생");
-            return new KmsResponse<string>
-            {
-                ErrorCode = "9999",
-                ErrorMessage = $"Service Exception: 이전 버전의 Key 획득 중 오류 발생: {ex.Message}",
-                Data = null
-            };
-        }
+        return await GetAndDecryptKeyAsync(clientGuid, "Previous", "이전 버전의 Key 획득");
     }
 
     /// <summary>
@@ -277,13 +187,86 @@ public class KeyService
         catch (Exception ex)
         {
             _logger.LogError(ex, "키 정보 조회 중 예외 발생");
-            return new KmsResponse<EncryptionKeyEntity>
-            {
-                ErrorCode = "9999",
-                ErrorMessage = $"Service Exception: 키 정보 조회 중 오류 발생: {ex.Message}",
-                Data = null
-            };
+            return CreateErrorResponse<EncryptionKeyEntity>("9999", $"Service Exception: 키 정보 조회 중 오류 발생: {ex.Message}");
         }
     }
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// 암호화된 키 데이터를 복호화하여 Base64 문자열로 반환
+    /// </summary>
+    private string DecryptKeyData(byte[] encryptedKeyData)
+    {
+        var encryptedKeyBase64 = Convert.ToBase64String(encryptedKeyData);
+        return _cryptoManager.Decrypt(encryptedKeyBase64);
+    }
+
+    /// <summary>
+    /// 에러 응답 생성 헬퍼 메서드
+    /// </summary>
+    private KmsResponse<T> CreateErrorResponse<T>(string errorCode, string errorMessage)
+    {
+        return new KmsResponse<T>
+        {
+            ErrorCode = errorCode,
+            ErrorMessage = errorMessage,
+            Data = default
+        };
+    }
+
+    /// <summary>
+    /// 키 조회 및 복호화 공통 로직
+    /// </summary>
+    private async Task<KmsResponse<string>> GetAndDecryptKeyAsync(
+        Guid clientGuid,
+        string keyType = "Current",
+        string operationName = "키 조회")
+    {
+        try
+        {
+            _logger.LogInformation("{OperationName} 시작: ClientGuid={ClientGuid}", operationName, clientGuid);
+
+            var requestInfo = _httpContextHelper.GetRequestInfo();
+
+            var proc = new GetKey_Proc
+            {
+                ClientGuid = clientGuid,
+                Type = keyType != "Current" ? keyType : null
+            };
+
+            var response = keyType == "Previous"
+                ? await _keyRepository.GetPreviousKeyAsync(proc, requestInfo)
+                : await _keyRepository.GetKeyAsync(proc, requestInfo);
+
+            if (!response.IsSuccess || response.Data == null)
+            {
+                _logger.LogWarning("{OperationName} 실패: {ErrorCode} - {ErrorMessage}",
+                    operationName, response.ErrorCode, response.ErrorMessage);
+                return CreateErrorResponse<string>(response.ErrorCode, response.ErrorMessage);
+            }
+
+            // 마스터 키로 복호화
+            var decryptedKeyBase64 = DecryptKeyData(response.Data.EncryptedKeyData);
+
+            _logger.LogInformation("{OperationName} 성공: KeyId={KeyId}, KeyVersion={KeyVersion}",
+                operationName, response.Data.KeyId, response.Data.KeyVersion);
+
+            return new KmsResponse<string>
+            {
+                ErrorCode = "0000",
+                ErrorMessage = "Success",
+                Data = decryptedKeyBase64
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "{OperationName} 중 예외 발생", operationName);
+            return CreateErrorResponse<string>("9999", $"Service Exception: {operationName} 중 오류 발생: {ex.Message}");
+        }
+    }
+
+    #endregion
 }
+
 
