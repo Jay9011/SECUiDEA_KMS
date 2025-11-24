@@ -222,6 +222,46 @@ public class ApiTests : IClassFixture<KmsApiFixture>
     }
 
     /// <summary>
+    /// 이전 버전의 키 조회 테스트 (정상 케이스)
+    /// </summary>
+    [Fact]
+    [Trait("Category", "KeyRetrieval")]
+    public async Task GetPreviousKey_WithValidGuid_ReturnsSuccessOrNotFound()
+    {
+        // Arrange
+        var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/api/keys/previous");
+        httpRequest.Headers.Add("X-Client-Guid", _testClientGuid.ToString());
+
+        // Act
+        var response = await _httpClient.SendAsync(httpRequest);
+
+        // Assert
+        var content = await response.Content.ReadAsStringAsync();
+        _output.WriteLine($"Response Content: {content}");
+
+        // 키가 존재하면 200, 없으면 404
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK ||
+            response.StatusCode == HttpStatusCode.NotFound);
+
+        var result = JsonSerializer.Deserialize<KmsResponse<string>>(content,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        Assert.NotNull(result);
+
+        if (response.StatusCode == HttpStatusCode.OK)
+        {
+            Assert.Equal("0000", result.ErrorCode);
+            Assert.NotNull(result.Data);
+            Assert.NotEmpty(result.Data);
+        }
+        else
+        {
+            Assert.Equal("2001", result.ErrorCode);
+        }
+    }
+
+    /// <summary>
     /// X-Client-Guid 헤더 없이 키 조회 요청 (실패 케이스)
     /// </summary>
     [Fact]

@@ -96,5 +96,43 @@ public class KeyRepository : BaseRepository, IKeyRepository
             };
         }
     }
+
+    public async Task<KmsResponse<EncryptionKeyEntity>> GetPreviousKeyAsync(GetKey_Proc proc, RequestInfo requestInfo)
+    {
+        try
+        {
+            proc.RequestIP = requestInfo.RequestIP;
+            proc.RequestUserAgent = requestInfo.RequestUserAgent;
+            proc.RequestHost = requestInfo.RequestHost;
+            proc.RequestPath = requestInfo.RequestPath;
+            var result = await ExecuteProcedureAsync(Procs.GetPreviousKey, proc);
+            var resultEntity = result.DataSet.Tables[result.DataSet.Tables.Count - 1].Rows[0].ToObject<ResultEntity>();
+            if (resultEntity.IsSuccess)
+            {
+                var key = result.DataSet.Tables[0].Rows[0].ToObject<EncryptionKeyEntity>();
+                return new KmsResponse<EncryptionKeyEntity>
+                {
+                    ErrorCode = resultEntity.ErrorCode,
+                    ErrorMessage = resultEntity.ErrorMessage,
+                    Data = key
+                };
+            }
+            return new KmsResponse<EncryptionKeyEntity>
+            {
+                ErrorCode = resultEntity.ErrorCode,
+                ErrorMessage = resultEntity.ErrorMessage,
+                Data = null
+            };
+        }
+        catch (Exception e)
+        {
+            return new KmsResponse<EncryptionKeyEntity>
+            {
+                ErrorCode = "9999",
+                ErrorMessage = $"Repository Exception: 이전 버전의 Key 획득 중 오류 발생: {e.Message}",
+                Data = null
+            };
+        }
+    }
 }
 

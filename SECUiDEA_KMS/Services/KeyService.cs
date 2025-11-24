@@ -55,8 +55,7 @@ public class KeyService
             // IP 검증 (외부 클라이언트만)
             if (!skipIpValidation)
             {
-                var clientInfo = await _clientRepository.GetClientInfoAsync(
-                    new ClientServerEntity { ClientGuid = request.ClientGuid });
+                var clientInfo = await _clientRepository.GetClientInfoAsync(new ClientServerEntity { ClientGuid = request.ClientGuid });
 
                 if (!clientInfo.IsSuccess || clientInfo.Data == null)
                 {
@@ -190,6 +189,60 @@ public class KeyService
             {
                 ErrorCode = "9999",
                 ErrorMessage = $"Service Exception: 키 조회 중 오류 발생: {ex.Message}",
+                Data = null
+            };
+        }
+    }
+
+    /// <summary>
+    /// 이전 버전의 Key 획득 요청
+    /// </summary>
+    /// <param name="clientGuid">클라이언트 GUID</param>
+    /// <returns>이전 버전의 Key</returns>
+    public async Task<KmsResponse<string>> GetPreviousKeyAsync(Guid clientGuid)
+    {
+        try
+        {
+            _logger.LogInformation("이전 버전의 Key 획득 시작: ClientGuid={ClientGuid}", clientGuid);
+
+            var requestInfo = _httpContextHelper.GetRequestInfo();
+            var response = await _keyRepository.GetPreviousKeyAsync(new GetKey_Proc()
+            {
+                ClientGuid = clientGuid,
+                Type = "Previous"
+            }, requestInfo);
+
+            if (!response.IsSuccess || response.Data == null)
+            {
+                _logger.LogWarning("이전 버전의 Key 획득 실패: {ErrorCode} - {ErrorMessage}", response.ErrorCode, response.ErrorMessage);
+                return new KmsResponse<string>
+                {
+                    ErrorCode = response.ErrorCode,
+                    ErrorMessage = response.ErrorMessage,
+                    Data = null
+                };
+            }
+
+            // 마스터 키로 복호화
+            var encryptedKeyBase64 = Convert.ToBase64String(response.Data.EncryptedKeyData);
+            var decryptedKeyBase64 = _cryptoManager.Decrypt(encryptedKeyBase64);
+
+            _logger.LogInformation("이전 버전의 Key 획득 성공: KeyId={KeyId}, KeyVersion={KeyVersion}", response.Data.KeyId, response.Data.KeyVersion);
+
+            return new KmsResponse<string>
+            {
+                ErrorCode = "0000",
+                ErrorMessage = "Success",
+                Data = decryptedKeyBase64 // Base64 인코딩된 키 반환
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "이전 버전의 Key 획득 중 예외 발생");
+            return new KmsResponse<string>
+            {
+                ErrorCode = "9999",
+                ErrorMessage = $"Service Exception: 이전 버전의 Key 획득 중 오류 발생: {ex.Message}",
                 Data = null
             };
         }

@@ -24,5 +24,13 @@ public interface IKeyRepository
     /// <param name="requestInfo">요청 정보</param>
     /// <returns>활성 키 정보</returns>
     Task<KmsResponse<EncryptionKeyEntity>> GetKeyAsync(GetKey_Proc proc, RequestInfo requestInfo);
+
+    /// <summary>
+    /// 이전 버전의 Key 획득
+    /// </summary>
+    /// <param name="proc">이전 버전의 Key 획득 프로시저</param>
+    /// <param name="requestInfo">요청 정보</param>
+    /// <returns>이전 버전의 Key 정보</returns>
+    Task<KmsResponse<EncryptionKeyEntity>> GetPreviousKeyAsync(GetKey_Proc proc, RequestInfo requestInfo);
 }
 

@@ -24,6 +24,21 @@ public class ApiController : ControllerBase
     }
 
     /// <summary>
+    /// 상태 체크 API
+    /// GET /api/health
+    /// </summary>
+    /// <remarks>
+    /// 요청 예시:
+    /// GET /api/health
+    /// </remarks>
+    [ProducesResponseType(typeof(KmsResponse), 200)]
+    [HttpGet("health")]
+    public IActionResult Health()
+    {
+        return MapKmsResponse(new KmsResponse { ErrorCode = "0000", ErrorMessage = "Success" });
+    }
+
+    /// <summary>
     /// 외부 클라이언트가 새 암호화 키 생성 요청
     /// POST /api/keys/generate
     /// </summary>
@@ -133,6 +148,43 @@ public class ApiController : ControllerBase
         }
 
         var response = await _keyService.GetKeyAsync(clientGuid);
+
+        return MapKmsResponse(response);
+    }
+
+    /// <summary>
+    /// 이전 버전의 Key 획득 요청
+    /// GET /api/keys/previous
+    /// </summary>
+    /// <remarks>
+    /// 헤더에 X-Client-Guid를 포함해야 합니다.
+    /// 
+    /// 요청 예시:
+    /// GET /api/keys/previous
+    /// Headers:
+    ///   X-Client-Guid: {guid}
+
+    [HttpGet("keys/previous")]
+    [ProducesResponseType(typeof(KmsResponse<string>), 200)]
+    [ProducesResponseType(typeof(KmsResponse), 400)]
+    [ProducesResponseType(typeof(KmsResponse), 403)]
+    [ProducesResponseType(typeof(KmsResponse), 404)]
+    [ProducesResponseType(typeof(KmsResponse), 429)]
+    public async Task<IActionResult> GetPreviousKey()
+    {
+        // 헤더에서 ClientGuid 추출
+        if (!Request.Headers.TryGetValue("X-Client-Guid", out var guidHeader) ||
+            !Guid.TryParse(guidHeader.FirstOrDefault(), out var clientGuid))
+        {
+            _logger.LogWarning("이전 버전의 Key 획득 요청에 X-Client-Guid 헤더가 없거나 유효하지 않습니다.");
+            return BadRequest(new KmsResponse
+            {
+                ErrorCode = "9999",
+                ErrorMessage = "X-Client-Guid 헤더가 필요합니다."
+            });
+        }
+
+        var response = await _keyService.GetPreviousKeyAsync(clientGuid);
 
         return MapKmsResponse(response);
     }

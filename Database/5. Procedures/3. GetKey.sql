@@ -9,6 +9,7 @@ GO
 -- =============================================
 CREATE PROCEDURE GetKey
     @ClientGuid         UNIQUEIDENTIFIER,
+    @Type               NVARCHAR(50)  = 'Active',
     @RequestIP          NVARCHAR(50)  = NULL,
     @RequestUserAgent   NVARCHAR(500) = NULL,
     @RequestHost        NVARCHAR(200) = NULL,
@@ -29,6 +30,8 @@ BEGIN
     DECLARE @ExpiresAt DATETIME2;
     
     BEGIN TRY
+        DECLARE @CurrentKeyVersion INT = 0;
+
         -- Rate Limit 체크
         EXEC CheckRateLimit @RequestIP = @RequestIP, @IsBlocked = @IsBlocked OUTPUT;
         
@@ -81,16 +84,36 @@ BEGIN
             THROW 50002, @ErrorMessage, 1;
         END
         
-        -- 활성 키 조회
-        SELECT TOP 1    @KeyId = KeyId,
-                        @EncryptedKeyData = EncryptedKeyData,
-                        @CreatedAt = CreatedAt,
-                        @ExpiresAt = ExpiresAt
-        FROM    EncryptionKeys
-        WHERE   ClientId = @ClientId 
-          AND   KeyStatus = 'Active'
-          AND   ExpiresAt > GETDATE()
-        ORDER BY KeyVersion DESC;
+        IF (@Type = 'Active')
+        BEGIN
+            -- 활성 키 조회
+            SELECT TOP 1    @KeyId = KeyId,
+                            @EncryptedKeyData = EncryptedKeyData,
+                            @CreatedAt = CreatedAt,
+                            @ExpiresAt = ExpiresAt
+            FROM    EncryptionKeys
+            WHERE   ClientId = @ClientId 
+            AND   KeyStatus = 'Active'
+            AND   ExpiresAt > GETDATE()
+            ORDER BY KeyVersion DESC;
+        END
+        ELSE IF (@Type = 'Previous')
+        BEGIN
+            -- 이전 버전의 키 조회
+            SELECT  @CurrentKeyVersion = MAX(KeyVersion)
+            FROM    EncryptionKeys
+            WHERE   ClientId = @ClientId
+            AND     KeyStatus = 'Active';
+
+            SELECT TOP 1    @KeyId = KeyId,
+                            @EncryptedKeyData = EncryptedKeyData,
+                            @CreatedAt = CreatedAt,
+                            @ExpiresAt = ExpiresAt
+            FROM    EncryptionKeys
+            WHERE   ClientId = @ClientId
+            AND   KeyStatus = 'Expired'
+            AND   KeyVersion = @CurrentKeyVersion - 1
+        END
         
         IF (@KeyId IS NULL)
         BEGIN

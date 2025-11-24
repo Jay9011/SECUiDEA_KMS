@@ -2,6 +2,7 @@ using CryptoManager;
 using SECUiDEA_KMS.Middleware;
 using SECUiDEA_KMS.Models;
 using SECUiDEA_KMS.Models.Settings;
+using SECUiDEA_KMS.Repositories;
 using SECUiDEA_KMS.Services;
 using SECUiDEACryptoManager.Services;
 using System.Reflection;
@@ -74,8 +75,8 @@ namespace SECUiDEA_KMS
             builder.Services.AddSingleton<HttpContextHelper>();
 
             // 5. Repository 등록 (Scoped - 요청당 인스턴스)
-            builder.Services.AddScoped<SECUiDEA_KMS.Repositories.IClientRepository, SECUiDEA_KMS.Repositories.ClientRepository>();
-            builder.Services.AddScoped<SECUiDEA_KMS.Repositories.IKeyRepository, SECUiDEA_KMS.Repositories.KeyRepository>();
+            builder.Services.AddScoped<IClientRepository, ClientRepository>();
+            builder.Services.AddScoped<IKeyRepository, KeyRepository>();
 
             // 6. Service 등록 (Scoped - 요청당 인스턴스)
             builder.Services.AddScoped<ClientService>();
