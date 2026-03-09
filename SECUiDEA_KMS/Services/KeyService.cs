@@ -4,6 +4,7 @@ using SECUiDEA_KMS.Models.ClientServers;
 using SECUiDEA_KMS.Models.EncryptionKeys;
 using SECUiDEA_KMS.Models.KeyRequests;
 using SECUiDEA_KMS.Repositories;
+using SECUiDEA_KMS.Utils;
 using System.Security.Cryptography;
 
 namespace SECUiDEA_KMS.Services;
@@ -71,7 +72,7 @@ public class KeyService
                 // Strict 모드에서 IP 검증
                 if (clientInfo.Data.IPValidationMode == "Strict")
                 {
-                    if (requestInfo.RequestIP != clientInfo.Data.ClientIP)
+                    if (!IpAddressHelper.AreEquivalent(requestInfo.RequestIP, clientInfo.Data.ClientIP))
                     {
                         _logger.LogWarning("IP 불일치: ClientGuid={ClientGuid}, 등록IP={RegisteredIP}, 요청IP={RequestIP}",
                             request.ClientGuid, clientInfo.Data.ClientIP, requestInfo.RequestIP);
