@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'CheckKeyRotationSchedule')
-BEGIN
-    DROP PROCEDURE CheckKeyRotationSchedule;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 자동 회전이 필요한 키 확인
 -- 스케줄러를 통해 주기적으로 실행하여 회전 알림
 -- =============================================
@@ -62,5 +57,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END
-GO
-

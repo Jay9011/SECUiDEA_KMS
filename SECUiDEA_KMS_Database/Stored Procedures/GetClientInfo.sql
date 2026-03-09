@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GetClientInfo')
-BEGIN
-    DROP PROCEDURE GetClientInfo;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 클라이언트 정보 조회 (GUID 기반)
 -- =============================================
 CREATE PROCEDURE GetClientInfo
@@ -54,5 +49,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage;
 END;
-GO
-

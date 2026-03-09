@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GenerateKey')
-BEGIN
-    DROP PROCEDURE GenerateKey;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 클라이언트를 위한 새 암호화 키 생성
 -- Rate Limit 적용 (IP 검증은 Service 레이어에서 수행)
 -- =============================================
@@ -157,5 +152,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END
-GO
-

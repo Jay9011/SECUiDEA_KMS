@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'CheckRateLimit')
-BEGIN
-    DROP PROCEDURE CheckRateLimit;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- Rate Limit 체크 및 기록 (내부 사용)
 -- 설정된 시간 내 최대 요청 수를 초과하면 차단
 -- =============================================
@@ -84,5 +79,3 @@ BEGIN
     DELETE FROM RateLimits
     WHERE RequestTimestamp < DATEADD(DAY, -7, GETDATE());
 END;
-GO
-

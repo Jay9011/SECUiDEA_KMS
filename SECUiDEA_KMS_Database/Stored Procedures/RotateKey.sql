@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'RotateKey')
-BEGIN
-    DROP PROCEDURE RotateKey;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 기존 키를 새 키로 교체 (키 회전)
 -- 이전 키는 일정 기간 보관하여 이전 데이터 복호화 지원
 -- =============================================
@@ -153,5 +148,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END
-GO
-

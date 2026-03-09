@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'RegisterClient')
-BEGIN
-    DROP PROCEDURE RegisterClient;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 새로운 클라이언트를 KMS에 등록 (관리자용)
 -- GUID는 서버에서 자동 생성하여 반환
 -- =============================================
@@ -74,5 +69,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END;
-GO
-

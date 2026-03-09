@@ -1,9 +1,4 @@
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'GetClientList')
-BEGIN
-    DROP PROCEDURE GetClientList;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 클라이언트 리스트를 페이징하여 조회
 -- 최근 접근 순으로 정렬
 -- =============================================
@@ -69,5 +64,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage;
 END
-GO
-

@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'InitializeRateLimitSettings')
-BEGIN
-    DROP PROCEDURE InitializeRateLimitSettings;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- Rate Limit 설정 초기화
 -- 최초 1회만 실행하여 기본 설정 생성
 -- =============================================
@@ -47,5 +42,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END
-GO
-

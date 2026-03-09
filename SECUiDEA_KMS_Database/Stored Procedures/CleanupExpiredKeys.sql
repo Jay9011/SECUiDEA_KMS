@@ -1,9 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE name = 'CleanupExpiredKeys')
-BEGIN
-    DROP PROCEDURE CleanupExpiredKeys;
-END
-GO
--- =============================================
+﻿-- =============================================
 -- 만료된 키를 정리하는 유지보수 프로시저
 -- 스케줄러를 통해 주기적으로 실행
 -- =============================================
@@ -66,5 +61,3 @@ BEGIN
         @ErrorCode AS ErrorCode,
         @ErrorMessage AS ErrorMessage
 END
-GO
-
